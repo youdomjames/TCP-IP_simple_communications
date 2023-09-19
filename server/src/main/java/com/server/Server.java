@@ -8,47 +8,68 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Random;
-import java.util.Scanner;
+
 
 @Service
-public class Server implements Runnable{
+public class Server implements Runnable {
+    private final ServerSocket serverSocket;
+    private final Socket client;
+    private final PrintWriter writer;
+    private final BufferedReader reader;
 
-    private static ServerSocket serverSocket;
-    private Socket server;
-
-    public void start() throws IOException {
-            serverSocket = new ServerSocket(8000);
-            System.out.println("Waiting for clients");
-            server = serverSocket.accept();
+    public Server() throws IOException {
+        serverSocket = new ServerSocket(8000);
+        System.out.println("Waiting for clients");
+        client = serverSocket.accept();
+        writer = new PrintWriter(client.getOutputStream(), true);
+        reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+        if (client.isConnected()) {
             System.out.println("New client connected");
+        }
     }
 
-    public void sendData() throws IOException, InterruptedException {
-        Scanner scanner = new Scanner(System.in);
-        PrintWriter writer = new PrintWriter(server.getOutputStream());
+    public void sendNotifications() throws InterruptedException {
         int count = 1;
-        while (!serverSocket.isClosed()){
-            writer.println("Notification " + count++);
-            writer.flush();
-            Thread.sleep(30000);
+        while (client.isConnected()) {
+            String notification = "Notification-" + count++;
+            writer.println(notification);
+            System.out.println("Sent = " + notification);
+            Thread.sleep(5000);
         }
     }
 
-    public void receiveData() {
-        while (!server.isClosed() && server.getChannel().isConnected()){
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(server.getInputStream()));
-                String data = reader.readLine();
-                System.out.println("Data from Client: "+data);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+    public void receiveRequests() {
+        try {
+            String data;
+            while((data = reader.readLine()) != null){
+                System.out.println("Data from Client: " + data);
+                if (data.startsWith("REQUEST_")) {
+                    writer.println("RESPONSE_Hello Client");
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    public void shutDown() {
+       try {
+           writer.close();
+           reader.close();
+           serverSocket.close();
+           System.out.println("Server Shutdown!!!");
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
     }
 
     @Override
     public void run() {
-        receiveData();
+        try {
+            sendNotifications();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 }
