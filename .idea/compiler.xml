@@ -12,11 +12,11 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="clientService" target="17" />
-      <module name="server" target="17" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="client" options="-parameters" />
       <module name="clientService" options="-parameters" />
       <module name="server" options="-parameters" />
     </option>
